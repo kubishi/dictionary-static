@@ -1,0 +1,21 @@
+{
+  "name": "dictionary-static",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Static dictionary website with semantic search",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:data && vite build",
+    "build:data": "node build-scripts/parse-lift.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "fast-xml-parser": "^4.3.4",
+    "vite": "^5.0.0"
+  }
+}
