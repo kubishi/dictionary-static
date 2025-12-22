@@ -25,8 +25,23 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,json}'],
+        globPatterns: ['**/*.{js,css,html,svg,png}'],
+        globIgnores: ['**/data/**'],
         runtimeCaching: [
+          {
+            urlPattern: /^\/data\/.*\.json$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'dictionary-data-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
