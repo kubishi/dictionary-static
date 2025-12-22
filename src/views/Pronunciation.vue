@@ -1,56 +1,89 @@
 <template>
   <div class="container">
-    <div class="pronunciation-page">
-      <h1>Pronunciation Guide</h1>
-      
-      <div class="card">
-        <h2>Kubishi (Owens Valley Paiute) Pronunciation</h2>
-        <p>
-          Kubishi is the native language of the Owens Valley Paiute people. 
-          This guide provides an overview of the sounds and orthography used in this dictionary.
-        </p>
+    <div class="word-detail">
+      <h1 style="font-size: 2rem; font-weight: 600; margin-bottom: 1.5rem;">Pronunciation Guide</h1>
+
+      <div class="sense-section">
+        <h2 class="sense-title">Vowels</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+          <div>
+            <strong>a</strong> - as in English "father" <br>
+            <strong>e</strong> - as in English "bet" <br>
+            <strong>i</strong> - as in English "bee" <br>
+          </div>
+          <div>
+            <strong>o</strong> - as in English "boat" <br>
+            <strong>u</strong> - as in English "boot" <br>
+            <strong>ü</strong> - as in English "put" but said with lips apart <br>
+          </div>
+        </div>
       </div>
 
-      <div class="card">
-        <h3>Vowels</h3>
-        <p>Kubishi has both short and long vowels:</p>
-        <ul>
-          <li><strong>a</strong> - like 'a' in "father"</li>
-          <li><strong>e</strong> - like 'e' in "bet"</li>
-          <li><strong>i</strong> - like 'i' in "machine"</li>
-          <li><strong>o</strong> - like 'o' in "note"</li>
-          <li><strong>u</strong> - like 'oo' in "boot"</li>
-          <li><strong>ü</strong> - like 'u' in "flute" (high central vowel)</li>
-        </ul>
-        <p class="note">Long vowels are marked with double letters (aa, ee, ii, oo, uu) or macrons (ā, ē, ī, ō, ū).</p>
+      <div class="sense-section">
+        <h2 class="sense-title">Consonants</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+          <div>
+            <strong>p</strong> - as in English "pour" <br>
+            <strong>t</strong> - as in English "butter" <br>
+            <strong>k</strong> - as in English "kidding" <br>
+            <strong>h</strong> - as in English "house" <br>
+            <strong>n</strong> - as in English "banner" <br>
+            <strong>w</strong> - as in English "winter" <br>
+            <strong>y</strong> - as in English "yabber" <br>
+            <strong>'</strong> - as stop in air output like the 'space' in the middle of the expression "uh oh" <br>
+          </div>
+          <div>
+            <strong>b</strong> - as in English "casaba" without lips touching <br>
+            <strong>d</strong> - as in English "body" <br>
+            <strong>g</strong> - as in English "giggle" <br>
+            <strong>m</strong> - as in English "mom" <br>
+            <strong>s</strong> - as in English "sassy" <br>
+            <strong>ŵ</strong> - as in English "want" but with nasalization <br>
+            <strong>hw</strong> - as in English "which" <br>
+          </div>
+        </div>
       </div>
 
-      <div class="card">
-        <h3>Consonants</h3>
-        <p>Most consonants are pronounced similarly to English, with these notable exceptions:</p>
-        <ul>
-          <li><strong>h</strong> - aspirated, stronger than English 'h'</li>
-          <li><strong>kw</strong> - like 'qu' in "queen"</li>
-          <li><strong>ts</strong> - like 'ts' in "cats"</li>
-          <li><strong>'</strong> (glottal stop) - a catch in the throat, like between syllables in "uh-oh"</li>
-        </ul>
+      <div class="sense-section">
+        <h2 class="sense-title">Double Consonants</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+          <div>
+            <strong>ts</strong> - as in English "hats" <br>
+            <strong>dz</strong> - as in English "cods" <br>
+            <strong>j</strong> - as in English "job" <br>
+            <strong>ng</strong> - as in English "singer" <br>
+            <strong>gw</strong> - as in English "iguana" <br>
+          </div>
+          <div>
+            <strong>ch</strong> - as in English "chores" <br>
+            <strong>z</strong> - as in English "zebra" <br>
+            <strong>zh</strong> - as in English "Persian" <br>
+            <strong>nd</strong> - as in English "Monday" <br>
+          </div>
+        </div>
       </div>
 
-      <div class="card">
-        <h3>Stress and Tone</h3>
-        <p>
-          Stress generally falls on the first syllable of a word. Pay attention to vowel length, 
-          as it can change the meaning of words.
-        </p>
-      </div>
-
-      <div class="card">
-        <h3>Notes on Orthography</h3>
-        <p>
-          This dictionary follows the orthographic conventions established by Glenn Nelson Jr. 
-          in the <em>Owens Valley Paiute Dictionary</em>. Different writing systems may use 
-          different symbols for the same sounds.
-        </p>
+      <div class="sense-section" style="border: none;">
+        <h2 class="sense-title">Vowel Diphthongs</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+          <div>
+            <strong>au</strong> - as in English "ouch" <br>
+            <strong>ai</strong> - pronounced like English "I" <br>
+            <strong>ia</strong> - as in 'ia' in "Santeria" <br>
+            <strong>ei</strong> - as in 'ay' in "say" <br>
+            <strong>oi</strong> - as in 'oy' in "boy" <br>
+            <strong>üa</strong> - say 'u' in "put" with lips apart followed by 'a' as in "father" <br>
+            <strong>aa</strong> - as in English "father" but longer <br>
+          </div>
+          <div>
+            <strong>ae</strong> - as in 'a' in "bat" <br>
+            <strong>io</strong> - as in 'eo' in the name "Leo" <br>
+            <strong>oa</strong> - as in 'oa' in "boa constrictor" <br>
+            <strong>ua</strong> - say 'oo' as in "root" followed by a 'a' sound <br>
+            <strong>ui</strong> - say 'oo' as in "root" followed by an 'i' sound <br>
+            <strong>üi</strong> - say 'u' in "put" with lips apart followed by an 'i' sound <br>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -61,48 +94,3 @@ export default {
   name: 'Pronunciation'
 }
 </script>
-
-<style scoped>
-.pronunciation-page h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: var(--text-primary);
-}
-
-.pronunciation-page h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
-}
-
-.pronunciation-page h3 {
-  font-size: 1.25rem;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary);
-}
-
-.pronunciation-page p {
-  margin-bottom: 1rem;
-  color: var(--text-secondary);
-  line-height: 1.8;
-}
-
-.pronunciation-page ul {
-  margin: 1rem 0;
-  padding-left: 1.5rem;
-  color: var(--text-secondary);
-}
-
-.pronunciation-page li {
-  margin-bottom: 0.5rem;
-  line-height: 1.6;
-}
-
-.note {
-  font-style: italic;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  margin-top: 1rem;
-}
-</style>
