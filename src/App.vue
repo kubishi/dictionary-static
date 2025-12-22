@@ -14,10 +14,11 @@
           <router-link to="/about">About</router-link>
           <div class="icon-buttons">
             <button @click="getRandomWord" class="btn-icon" title="Random Word">
-              ↻
+              <Shuffle :size="18" />
             </button>
             <button @click="toggleDarkMode" class="btn-icon" title="Toggle Dark Mode">
-              {{ isDarkMode ? '☀' : '☾' }}
+              <Sun v-if="isDarkMode" :size="18" />
+              <Moon v-else :size="18" />
             </button>
           </div>
         </nav>
@@ -39,10 +40,12 @@
           <router-link to="/about" @click="closeMobileMenu">About</router-link>
           <div class="mobile-buttons">
             <button @click="getRandomWord(); closeMobileMenu()" class="btn-icon" title="Random Word">
-              ↻ Random Word
+              <Shuffle :size="18" /> Random Word
             </button>
             <button @click="toggleDarkMode" class="btn-icon" title="Toggle Dark Mode">
-              {{ isDarkMode ? '☀' : '☾' }} {{ isDarkMode ? 'Light' : 'Dark' }} Mode
+              <Sun v-if="isDarkMode" :size="18" />
+              <Moon v-else :size="18" />
+              {{ isDarkMode ? 'Light' : 'Dark' }} Mode
             </button>
           </div>
         </nav>
@@ -68,10 +71,16 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Shuffle, Sun, Moon } from 'lucide-vue-next'
 import { loadData, getWords, getWordUrl } from './services/data'
 
 export default {
   name: 'App',
+  components: {
+    Shuffle,
+    Sun,
+    Moon
+  },
   setup() {
     const router = useRouter()
     const isDarkMode = ref(false)
@@ -122,7 +131,10 @@ export default {
       toggleDarkMode,
       toggleMobileMenu,
       closeMobileMenu,
-      getRandomWord
+      getRandomWord,
+      Shuffle,
+      Sun,
+      Moon
     }
   }
 }
@@ -189,16 +201,20 @@ export default {
 .btn-icon {
   background: none;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
   cursor: pointer;
-  font-size: 1.25rem;
+  font-size: 0.95rem;
   border-radius: 0.25rem;
   transition: background 0.2s;
-  min-width: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   color: var(--text-secondary);
+}
+
+.btn-icon svg {
+  flex-shrink: 0;
 }
 
 .btn-icon:hover {
