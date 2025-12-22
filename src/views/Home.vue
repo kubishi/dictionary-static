@@ -6,7 +6,7 @@
         <aside class="sidebar" v-if="wordOfDay">
           <div class="word-of-day card">
             <h3>Word of the Day</h3>
-            <div class="wod-content" @click="$router.push(`/word/${wordOfDay.id}`)">
+            <div class="wod-content" @click="$router.push(getWordUrl(wordOfDay))">
               <h2>{{ getPrimaryForm(wordOfDay) }}</h2>
               <p class="definition">{{ getFirstDefinition(wordOfDay) }}</p>
               <span v-if="wordOfDay.senses?.[0]?.partOfSpeech" class="pos">
