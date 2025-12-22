@@ -118,7 +118,7 @@ export default {
         const words = getWords()
         if (words.length > 0) {
           const randomWord = words[Math.floor(Math.random() * words.length)]
-          router.push(`/word/${randomWord.id}`)
+          router.push(getWordUrl(randomWord))
         }
       } catch (error) {
         console.error('Error getting random word:', error)

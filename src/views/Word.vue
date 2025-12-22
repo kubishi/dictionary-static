@@ -133,8 +133,9 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useHead } from '@vueuse/head'
 import { loadData, getWordBySlugOrId, getWords, getWordUrl } from '../services/data'
 
 export default {
@@ -144,6 +145,38 @@ export default {
     const router = useRouter()
     const word = ref(null)
     const loading = ref(true)
+
+    // Computed properties for meta tags
+    const pageTitle = computed(() => {
+      if (!word.value) return 'Word | Kubishi Dictionary'
+      const primaryForm = getPrimaryForm()
+      return `${primaryForm} | Kubishi Dictionary`
+    })
+
+    const pageDescription = computed(() => {
+      if (!word.value) return 'Owens Valley Paiute Dictionary'
+      const primaryForm = getPrimaryForm()
+      const definition = getFirstDefinition()
+      return definition ? `${primaryForm}: ${definition}` : `${primaryForm} - Owens Valley Paiute word`
+    })
+
+    const pageUrl = computed(() => {
+      return `https://dictionary.kubishi.com${route.fullPath}`
+    })
+
+    // Setup dynamic head tags
+    useHead({
+      title: pageTitle,
+      meta: [
+        { name: 'description', content: pageDescription },
+        { property: 'og:title', content: pageTitle },
+        { property: 'og:description', content: pageDescription },
+        { property: 'og:url', content: pageUrl },
+        { property: 'og:type', content: 'article' },
+        { property: 'twitter:title', content: pageTitle },
+        { property: 'twitter:description', content: pageDescription },
+      ]
+    })
 
     const loadWord = async () => {
       loading.value = true
@@ -169,6 +202,18 @@ export default {
     const getPrimaryForm = () => {
       if (!word.value) return ''
       return word.value.forms ? Object.values(word.value.forms)[0] : word.value.word || 'Unknown'
+    }
+
+    const getFirstDefinition = () => {
+      if (!word.value || !word.value.senses || word.value.senses.length === 0) return ''
+      const sense = word.value.senses[0]
+      if (sense.definitions && Object.keys(sense.definitions).length > 0) {
+        return Object.values(sense.definitions)[0]
+      }
+      if (sense.glosses && Object.keys(sense.glosses).length > 0) {
+        return Object.values(sense.glosses)[0]
+      }
+      return ''
     }
 
     const getAnotherRandom = () => {
