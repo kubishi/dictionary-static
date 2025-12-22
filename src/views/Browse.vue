@@ -109,13 +109,81 @@ export default {
       return '#' // For words with no alphabetic characters
     }
 
+    // Normalize text for fuzzy matching - treats similar characters as equivalent
+    const normalizeForMatching = (text) => {
+      return text
+        .toLowerCase()
+        .replace(/[kg]/g, 'k')  // k/g are equivalent
+        .replace(/[td]/g, 't')  // t/d are equivalent
+        .replace(/[sz]/g, 's')  // s/z are equivalent
+        .replace(/[üu]/g, 'u')  // ü/u are equivalent
+        .replace(/w̃/g, 'w')     // w̃/w are equivalent
+        .replace(/[mw]/g, 'm')  // m/w are equivalent (also catches w̃ via previous rule)
+        .replace(/[pb]/g, 'p')  // p/b are equivalent
+    }
+
+    // Calculate Levenshtein distance for fuzzy matching
+    const levenshteinDistance = (str1, str2) => {
+      const matrix = []
+
+      for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i]
+      }
+
+      for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j
+      }
+
+      for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+          if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1]
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1, // substitution
+              matrix[i][j - 1] + 1,     // insertion
+              matrix[i - 1][j] + 1      // deletion
+            )
+          }
+        }
+      }
+
+      return matrix[str2.length][str1.length]
+    }
+
     const filteredWords = computed(() => {
       if (!filterText.value) return words.value
 
-      const filter = filterText.value.toLowerCase()
+      const filter = normalizeForMatching(filterText.value)
+      const maxDistance = Math.max(1, Math.floor(filter.length / 4)) // Allow ~25% error rate
+
       return words.value.filter(word => {
-        const primaryForm = getPrimaryForm(word).toLowerCase()
-        return primaryForm.includes(filter) || primaryForm.startsWith(filter)
+        const primaryForm = getPrimaryForm(word)
+        const normalizedForm = normalizeForMatching(primaryForm)
+        
+        // Exact match after normalization (handles character equivalences)
+        if (normalizedForm.includes(filter)) {
+          return true
+        }
+        
+        // Fuzzy match at start of word
+        if (filter.length >= 3) {
+          const wordStart = normalizedForm.substring(0, filter.length)
+          const distance = levenshteinDistance(filter, wordStart)
+          if (distance <= maxDistance) {
+            return true
+          }
+        }
+        
+        // Fuzzy match for whole word if filter is long enough
+        if (filter.length >= 4) {
+          const distance = levenshteinDistance(filter, normalizedForm)
+          if (distance <= maxDistance) {
+            return true
+          }
+        }
+        
+        return false
       })
     })
 
