@@ -17,9 +17,9 @@
         <button 
           v-for="letter in alphabet" 
           :key="letter"
+          v-show="lettersWithWords.has(letter)"
           @click="scrollToLetter(letter)"
           :class="['letter-btn', { 'active': selectedLetter === letter }]"
-          :disabled="!lettersWithWords.has(letter)"
         >
           {{ letter }}
         </button>
