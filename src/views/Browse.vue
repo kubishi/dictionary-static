@@ -12,8 +12,8 @@
         />
       </div>
 
-      <!-- Letter Navigation -->
-      <div v-if="!loading" class="letter-nav">
+      <!-- Letter Navigation (only show when not filtering) -->
+      <div v-if="!loading && !filterText" class="letter-nav">
         <button 
           v-for="letter in alphabet" 
           :key="letter"
@@ -30,31 +30,54 @@
       </div>
 
       <div v-else class="word-list">
-        <template v-for="letter in alphabet" :key="letter">
-          <div v-if="wordsByLetter[letter] && wordsByLetter[letter].length > 0" :id="`letter-${letter}`" class="letter-section">
-            <h3 class="letter-heading">{{ letter }}</h3>
-            <div class="letter-words">
-              <div 
-                v-for="word in wordsByLetter[letter]" 
-                :key="word.id"
-                class="word-item card"
-                @click="$router.push(getWordUrl(word))"
-              >
-                <div class="word-header">
-                  <h4>{{ getPrimaryForm(word) }}</h4>
-                  <span v-if="getPartOfSpeech(word)" class="pos">
-                    {{ getPartOfSpeech(word) }}
-                  </span>
-                </div>
-                <p class="definition">{{ getFirstDefinition(word) }}</p>
+        <!-- Filtered results (flat list sorted by relevance) -->
+        <template v-if="filterText">
+          <div class="list-group card">
+            <div 
+              v-for="word in filteredWords" 
+              :key="word.id"
+              class="list-item"
+              @click="$router.push(getWordUrl(word))"
+            >
+              <div class="word-header">
+                <h4>{{ getPrimaryForm(word) }}</h4>
+                <span v-if="getPartOfSpeech(word)" class="pos">
+                  {{ getPartOfSpeech(word) }}
+                </span>
               </div>
+              <p class="definition">{{ getFirstDefinition(word) }}</p>
             </div>
+          </div>
+          
+          <div v-if="filteredWords.length === 0" class="no-results">
+            <p>No words found matching "{{ filterText }}"</p>
           </div>
         </template>
 
-        <div v-if="filteredWords.length === 0" class="no-results">
-          <p>No words found matching "{{ filterText }}"</p>
-        </div>
+        <!-- Letter-grouped view (when no filter) -->
+        <template v-else>
+          <template v-for="letter in alphabet" :key="letter">
+            <div v-if="wordsByLetter[letter] && wordsByLetter[letter].length > 0" :id="`letter-${letter}`" class="letter-section">
+              <h3 class="letter-heading">{{ letter }}</h3>
+              <div class="list-group card">
+                <div 
+                  v-for="word in wordsByLetter[letter]" 
+                  :key="word.id"
+                  class="list-item"
+                  @click="$router.push(getWordUrl(word))"
+                >
+                  <div class="word-header">
+                    <h4>{{ getPrimaryForm(word) }}</h4>
+                    <span v-if="getPartOfSpeech(word)" class="pos">
+                      {{ getPartOfSpeech(word) }}
+                    </span>
+                  </div>
+                  <p class="definition">{{ getFirstDefinition(word) }}</p>
+                </div>
+              </div>
+            </div>
+          </template>
+        </template>
       </div>
 
       <div v-if="!loading && words.length > 0" class="browse-footer">
@@ -151,40 +174,64 @@ export default {
       return matrix[str2.length][str1.length]
     }
 
+    // Calculate relevance score for a word (higher is better)
+    const calculateRelevanceScore = (word, filter) => {
+      const primaryForm = getPrimaryForm(word)
+      const normalizedForm = normalizeForMatching(primaryForm)
+      const maxDistance = Math.max(1, Math.floor(filter.length / 4))
+      
+      // Exact match gets highest score
+      if (normalizedForm === filter) {
+        return 1000
+      }
+      
+      // Starts with exact match
+      if (normalizedForm.startsWith(filter)) {
+        return 900 - (normalizedForm.length - filter.length)
+      }
+      
+      // Contains exact match
+      if (normalizedForm.includes(filter)) {
+        const position = normalizedForm.indexOf(filter)
+        return 700 - position * 2
+      }
+      
+      // Fuzzy match at start
+      if (filter.length >= 3) {
+        const wordStart = normalizedForm.substring(0, filter.length)
+        const distance = levenshteinDistance(filter, wordStart)
+        if (distance <= maxDistance) {
+          return 500 - distance * 50
+        }
+      }
+      
+      // Fuzzy match for whole word
+      if (filter.length >= 4) {
+        const distance = levenshteinDistance(filter, normalizedForm)
+        if (distance <= maxDistance) {
+          return 300 - distance * 30 - Math.abs(normalizedForm.length - filter.length)
+        }
+      }
+      
+      return 0 // No match
+    }
+
     const filteredWords = computed(() => {
       if (!filterText.value) return words.value
 
       const filter = normalizeForMatching(filterText.value)
-      const maxDistance = Math.max(1, Math.floor(filter.length / 4)) // Allow ~25% error rate
+      
+      // Calculate scores and filter out non-matches
+      const scoredWords = words.value
+        .map(word => ({
+          word,
+          score: calculateRelevanceScore(word, filter)
+        }))
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score) // Sort by score (highest first)
+        .map(item => item.word)
 
-      return words.value.filter(word => {
-        const primaryForm = getPrimaryForm(word)
-        const normalizedForm = normalizeForMatching(primaryForm)
-        
-        // Exact match after normalization (handles character equivalences)
-        if (normalizedForm.includes(filter)) {
-          return true
-        }
-        
-        // Fuzzy match at start of word
-        if (filter.length >= 3) {
-          const wordStart = normalizedForm.substring(0, filter.length)
-          const distance = levenshteinDistance(filter, wordStart)
-          if (distance <= maxDistance) {
-            return true
-          }
-        }
-        
-        // Fuzzy match for whole word if filter is long enough
-        if (filter.length >= 4) {
-          const distance = levenshteinDistance(filter, normalizedForm)
-          if (distance <= maxDistance) {
-            return true
-          }
-        }
-        
-        return false
-      })
+      return scoredWords
     })
 
     // Group words by first letter
@@ -330,45 +377,56 @@ export default {
   scroll-margin-top: 6rem;
 }
 
-.letter-words {
-  display: grid;
-  gap: 1rem;
-}
-
 .word-list {
   display: grid;
   gap: 1rem;
 }
 
-.word-item {
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+/* List group styling */
+.list-group {
+  padding: 0;
+  overflow: hidden;
 }
 
-.word-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow);
+.list-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item:hover {
+  background-color: var(--bg-secondary);
 }
 
 .word-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .word-header h4 {
   margin: 0;
   color: var(--text-primary);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
+}
+
+/* Smaller heading in filtered view */
+.list-item .word-header h4 {
+  font-size: 1rem;
 }
 
 .pos {
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.5rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-secondary);
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
@@ -376,7 +434,14 @@ export default {
 .definition {
   margin: 0;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+/* More compact definition in filtered view */
+.list-item .definition {
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .browse-footer {

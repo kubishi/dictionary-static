@@ -52,18 +52,20 @@
 
           <div v-else-if="results.length > 0" class="results">
             <h3>{{ results.length }} result{{ results.length !== 1 ? 's' : '' }}</h3>
-            <div 
-              v-for="word in results" 
-              :key="word.id"
-              class="result-card card"
-              @click="$router.push(getWordUrl(word))"
-            >
-              <h4>{{ getPrimaryForm(word) }}</h4>
-              <div v-if="word.senses && word.senses.length > 0">
+            <div class="list-group card">
+              <div 
+                v-for="word in results" 
+                :key="word.id"
+                class="list-item"
+                @click="$router.push(getWordUrl(word))"
+              >
+                <div class="word-header">
+                  <h4>{{ getPrimaryForm(word) }}</h4>
+                  <span v-if="word.senses?.[0]?.partOfSpeech" class="pos">
+                    {{ word.senses[0].partOfSpeech }}
+                  </span>
+                </div>
                 <p class="definition">{{ getFirstDefinition(word) }}</p>
-                <span v-if="word.senses[0].partOfSpeech" class="pos">
-                  {{ word.senses[0].partOfSpeech }}
-                </span>
               </div>
             </div>
           </div>
@@ -245,38 +247,54 @@ export default {
   font-weight: 500;
 }
 
-.result-card {
+.list-group {
+  padding: 0;
+  overflow: hidden;
+}
+
+.list-item {
+  padding: 0.75rem 1rem;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid var(--border-secondary);
 }
 
-.result-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow);
+.list-item:last-child {
+  border-bottom: none;
 }
 
-.result-card h4 {
-  margin: 0 0 0.5rem 0;
+.list-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.word-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.word-header h4 {
+  margin: 0;
   color: var(--text-primary);
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 .definition {
-  margin: 0.5rem 0;
+  margin: 0;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.4;
+  font-size: 0.9rem;
 }
 
 .pos {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.5rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-secondary);
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   font-weight: 500;
-  margin-top: 0.5rem;
 }
 
 .welcome {
