@@ -70,6 +70,32 @@
             </div>
           </div>
 
+          <!-- Sidebar content (shown here on mobile, after results) -->
+          <aside class="sidebar-mobile" v-if="wordOfDay">
+            <div class="word-of-day card">
+              <h3>Word of the Day</h3>
+              <div class="wod-content" @click="$router.push(getWordUrl(wordOfDay))">
+                <h2>{{ getPrimaryForm(wordOfDay) }}</h2>
+                <p class="definition">{{ getFirstDefinition(wordOfDay) }}</p>
+                <span v-if="wordOfDay.senses?.[0]?.partOfSpeech" class="pos">
+                  {{ wordOfDay.senses[0].partOfSpeech }}
+                </span>
+              </div>
+            </div>
+
+            
+            <div class="stats" v-if="index">
+              <div class="stat-item">
+                <div class="stat-number">{{ index.totalWords }}</div>
+                <div class="stat-label">Words</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">{{ index.totalSentences }}</div>
+                <div class="stat-label">Example Sentences</div>
+              </div>
+            </div>
+          </aside>
+
           <div v-if="results.length === 0" class="acknowledgement card">
             <h3 class="text-center">Acknowledgements</h3>
             <p>
@@ -197,6 +223,10 @@ export default {
   top: 1rem;
 }
 
+.sidebar-mobile {
+  display: none;
+}
+
 .main-content {
   min-width: 0;
 }
@@ -207,8 +237,12 @@ export default {
   }
   
   .sidebar {
-    position: static;
-    order: 2;
+    display: none;
+  }
+
+  .sidebar-mobile {
+    display: block;
+    margin-bottom: 2rem;
   }
   
   .main-content {

@@ -1,5 +1,11 @@
 <template>
   <div id="app">
+    <!-- Update notification -->
+    <div v-if="updateAvailable" class="update-banner">
+      <p>A new version is available!</p>
+      <button @click="reloadPage" class="btn-update">Update Now</button>
+    </div>
+
     <header class="header">
       <div class="container header-content">
         <router-link to="/" class="logo">
@@ -13,6 +19,9 @@
           <router-link to="/pronunciation">Pronunciation</router-link>
           <router-link to="/about">About</router-link>
           <div class="icon-buttons">
+            <button v-if="canInstall" @click="installPWA" class="btn-icon btn-install" title="Install App">
+              <Download :size="18" />
+            </button>
             <button @click="getRandomWord" class="btn-icon" title="Random Word">
               <Shuffle :size="18" />
             </button>
@@ -39,6 +48,9 @@
           <router-link to="/pronunciation" @click="closeMobileMenu">Pronunciation</router-link>
           <router-link to="/about" @click="closeMobileMenu">About</router-link>
           <div class="mobile-buttons">
+            <button v-if="canInstall" @click="installPWA(); closeMobileMenu()" class="btn-icon btn-install" title="Install App">
+              <Download :size="18" /> Install App
+            </button>
             <button @click="getRandomWord(); closeMobileMenu()" class="btn-icon" title="Random Word">
               <Shuffle :size="18" /> Random Word
             </button>
@@ -71,7 +83,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Shuffle, Sun, Moon } from 'lucide-vue-next'
+import { Shuffle, Sun, Moon, Download } from 'lucide-vue-next'
 import { loadData, getWords, getWordUrl } from './services/data'
 
 export default {
@@ -79,12 +91,17 @@ export default {
   components: {
     Shuffle,
     Sun,
-    Moon
+    Moon,
+    Download
   },
   setup() {
     const router = useRouter()
     const isDarkMode = ref(false)
     const mobileMenuOpen = ref(false)
+    const canInstall = ref(false)
+    const updateAvailable = ref(false)
+    let deferredPrompt = null
+    let registration = null
 
     onMounted(() => {
       // Check for saved dark mode preference
@@ -93,6 +110,43 @@ export default {
         isDarkMode.value = true
         document.body.classList.add('dark-mode')
       }
+
+      // Listen for service worker updates
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          registration = reg
+          
+          // Check for updates periodically
+          setInterval(() => {
+            reg.update()
+          }, 60 * 60 * 1000) // Check every hour
+          
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New service worker installed, show update notification
+                updateAvailable.value = true
+              }
+            })
+          })
+        }).catch(err => {
+          console.log('Service worker registration failed:', err)
+        })
+      }
+
+      // Listen for PWA install prompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault()
+        deferredPrompt = e
+        canInstall.value = true
+      })
+
+      // Listen for successful installation
+      window.addEventListener('appinstalled', () => {
+        canInstall.value = false
+        deferredPrompt = null
+      })
 
       // Load data in background
       loadData().catch(console.error)
@@ -125,22 +179,80 @@ export default {
       }
     }
 
+    const installPWA = async () => {
+      if (!deferredPrompt) return
+
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      
+      if (outcome === 'accepted') {
+        console.log('PWA installed')
+      }
+      
+      canInstall.value = false
+      deferredPrompt = null
+    }
+
+    const reloadPage = () => {
+      window.location.reload()
+    }
+
     return {
       isDarkMode,
       mobileMenuOpen,
+      canInstall,
+      updateAvailable,
       toggleDarkMode,
       toggleMobileMenu,
       closeMobileMenu,
       getRandomWord,
+      installPWA,
+      reloadPage,
       Shuffle,
       Sun,
-      Moon
+      Moon,
+      Download
     }
   }
 }
 </script>
 
 <style scoped>
+.update-banner {
+  background: var(--accent-primary);
+  color: white;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 101;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.update-banner p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.btn-update {
+  background: white;
+  color: var(--accent-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: transform 0.2s;
+}
+
+.btn-update:hover {
+  transform: scale(1.05);
+}
+
 .header {
   background: var(--bg-paper);
   border-bottom: 1px solid var(--border-primary);
@@ -219,6 +331,16 @@ export default {
 
 .btn-icon:hover {
   background: var(--bg-tertiary);
+}
+
+.btn-install {
+  background: var(--accent-primary) !important;
+  color: white !important;
+}
+
+.btn-install:hover {
+  background: var(--accent-secondary) !important;
+  transform: scale(1.05);
 }
 
 .main {
