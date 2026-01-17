@@ -36,7 +36,7 @@
                 <input
                   type="search"
                   v-model="searchQuery"
-                  placeholder="Search for words or meanings..."
+                  placeholder="Search in English or Paiute..."
                   class="search-input"
                   @keyup.enter="handleSearch"
                 />
@@ -153,6 +153,86 @@ export default {
       }
     })
 
+    // Normalize text for Paiute fuzzy matching - treats similar characters as equivalent
+    const normalizeForMatching = (text) => {
+      return text
+        .toLowerCase()
+        .replace(/[kg]/g, 'k')  // k/g are equivalent
+        .replace(/[td]/g, 't')  // t/d are equivalent
+        .replace(/[sz]/g, 's')  // s/z are equivalent
+        .replace(/[üu]/g, 'u')  // ü/u are equivalent
+        .replace(/w̃/g, 'w')     // w̃/w are equivalent
+        .replace(/[mw]/g, 'm')  // m/w are equivalent
+        .replace(/[pb]/g, 'p')  // p/b are equivalent
+    }
+
+    // Calculate Levenshtein distance for fuzzy matching
+    const levenshteinDistance = (str1, str2) => {
+      const matrix = []
+      for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i]
+      }
+      for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j
+      }
+      for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+          if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1]
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            )
+          }
+        }
+      }
+      return matrix[str2.length][str1.length]
+    }
+
+    // Calculate Paiute word match score (higher is better)
+    const calculatePaiuteScore = (word, filter) => {
+      const primaryForm = getPrimaryForm(word)
+      const normalizedForm = normalizeForMatching(primaryForm)
+      const maxDistance = Math.max(1, Math.floor(filter.length / 4))
+
+      // Exact match gets highest score
+      if (normalizedForm === filter) {
+        return 1000
+      }
+
+      // Starts with exact match
+      if (normalizedForm.startsWith(filter)) {
+        return 900 - (normalizedForm.length - filter.length)
+      }
+
+      // Contains exact match
+      if (normalizedForm.includes(filter)) {
+        const position = normalizedForm.indexOf(filter)
+        return 700 - position * 2
+      }
+
+      // Fuzzy match at start
+      if (filter.length >= 3) {
+        const wordStart = normalizedForm.substring(0, filter.length)
+        const distance = levenshteinDistance(filter, wordStart)
+        if (distance <= maxDistance) {
+          return 500 - distance * 50
+        }
+      }
+
+      // Fuzzy match for whole word
+      if (filter.length >= 4) {
+        const distance = levenshteinDistance(filter, normalizedForm)
+        if (distance <= maxDistance) {
+          return 300 - distance * 30 - Math.abs(normalizedForm.length - filter.length)
+        }
+      }
+
+      return 0
+    }
+
     const handleSearch = async () => {
       const query = searchQuery.value.trim()
       if (!query) {
@@ -164,28 +244,70 @@ export default {
       lastQuery.value = query
 
       try {
-        // Always get TF-IDF results first (fast)
-        const tfidfResults = smartSearch(query, 40)
+        const words = getWords()
+        const normalizedQuery = normalizeForMatching(query)
 
-        let searchResults
+        // 1. Search Paiute words (by word form)
+        const paiuteResults = words
+          .map(word => ({
+            word,
+            score: calculatePaiuteScore(word, normalizedQuery),
+            source: 'paiute'
+          }))
+          .filter(item => item.score > 0)
+
+        console.log(`🔤 Found ${paiuteResults.length} Paiute matches`)
+
+        // 2. Search English meanings (semantic/TF-IDF)
+        const tfidfResults = smartSearch(query, 40)
+        let englishResults
+
         if (isSemanticSearchReady()) {
-          // Use hybrid search when semantic is ready
           console.log(`🔍 Hybrid search for "${query}"...`)
-          searchResults = await hybridSearch(query, tfidfResults, { limit: 20 })
+          englishResults = await hybridSearch(query, tfidfResults, { limit: 30 })
         } else {
-          // Fall back to TF-IDF only
           console.log(`🔍 TF-IDF search for "${query}"...`)
-          searchResults = tfidfResults.slice(0, 20)
+          englishResults = tfidfResults.slice(0, 30)
         }
 
-        // Map to full word objects
-        const words = getWords()
-        results.value = searchResults
+        // Normalize English scores to 0-1000 range for comparison
+        const maxEnglishScore = Math.max(...englishResults.map(r => r.score), 0.001)
+        const englishScored = englishResults
           .filter(r => r.type === 'word')
-          .map(r => words.find(w => w.id === r.id))
-          .filter(Boolean)
+          .map(r => ({
+            word: words.find(w => w.id === r.id),
+            score: (r.score / maxEnglishScore) * 600, // Max 600 to prioritize exact Paiute matches
+            source: 'english'
+          }))
+          .filter(item => item.word)
 
-        console.log(`Found ${results.value.length} results`)
+        console.log(`📖 Found ${englishScored.length} English matches`)
+
+        // 3. Merge results, keeping highest score for each word
+        const scoreMap = new Map()
+
+        for (const item of paiuteResults) {
+          const existing = scoreMap.get(item.word.id)
+          if (!existing || item.score > existing.score) {
+            scoreMap.set(item.word.id, item)
+          }
+        }
+
+        for (const item of englishScored) {
+          const existing = scoreMap.get(item.word.id)
+          if (!existing || item.score > existing.score) {
+            scoreMap.set(item.word.id, item)
+          }
+        }
+
+        // 4. Sort by score and take top results
+        const merged = Array.from(scoreMap.values())
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 20)
+          .map(item => item.word)
+
+        results.value = merged
+        console.log(`Found ${results.value.length} total results`)
       } catch (error) {
         console.error('❌ Search error:', error)
       } finally {
