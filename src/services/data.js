@@ -1,10 +1,13 @@
 // Data loading service
 import { buildSearchIndex } from './smart-search';
+import { initializeSemanticSearch, setProgressCallback } from './semantic-search';
 
 let wordsData = null;
 let sentencesData = null;
 let searchableData = null;
 let indexData = null;
+let embeddingsData = null;
+let semanticSearchReady = false;
 
 export async function loadData() {
   if (wordsData) return; // Already loaded
@@ -22,12 +25,49 @@ export async function loadData() {
     searchableData = searchable;
     indexData = index;
 
-    // Build smart search index
+    // Build smart search index (TF-IDF fallback)
     buildSearchIndex(words, sentences);
+
+    // Load embeddings in the background (don't block initial load)
+    loadEmbeddingsAsync();
   } catch (error) {
     console.error('Error loading dictionary data:', error);
     throw new Error('Failed to load dictionary data. Please build the data files first.');
   }
+}
+
+// Load embeddings asynchronously
+async function loadEmbeddingsAsync() {
+  try {
+    console.log('📊 Loading precomputed embeddings...');
+    const response = await fetch('/data/embeddings.json');
+
+    if (!response.ok) {
+      console.warn('Embeddings not found, semantic search will be disabled');
+      return;
+    }
+
+    embeddingsData = await response.json();
+    console.log(`📊 Loaded ${embeddingsData.words.length} word embeddings`);
+
+    // Initialize semantic search with embeddings
+    await initializeSemanticSearch(embeddingsData);
+    semanticSearchReady = true;
+  } catch (error) {
+    console.warn('Failed to load embeddings, semantic search disabled:', error);
+  }
+}
+
+export function isSemanticReady() {
+  return semanticSearchReady;
+}
+
+export function getEmbeddings() {
+  return embeddingsData;
+}
+
+export function onSemanticProgress(callback) {
+  setProgressCallback(callback);
 }
 
 export function getWords() {

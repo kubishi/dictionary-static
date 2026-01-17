@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run build:data && vite build",
-    "build:data": "node build-scripts/parse-lift.js",
+    "build:data": "node build-scripts/parse-lift.js && node build-scripts/generate-embeddings.js",
+    "build:embeddings": "node build-scripts/generate-embeddings.js",
+    "test:embeddings": "node build-scripts/test-embeddings.js",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@xenova/transformers": "^2.17.2",
     "lucide-vue-next": "^0.562.0",
     "vue": "^3.4.0",
     "vue-router": "^4.2.5"

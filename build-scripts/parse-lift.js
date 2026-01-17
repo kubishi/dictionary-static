@@ -98,12 +98,11 @@ async function parseLiftFile() {
   );
 
   console.log(`✅ Processed ${words.length} words and ${sentences.length} sentences`);
-  console.log('📊 Generating embeddings for semantic search...');
 
-  // Generate embeddings
-  await generateEmbeddings(words, sentences);
+  // Generate searchable text for embeddings
+  await generateSearchableText(words, sentences);
 
-  console.log('✅ Build complete!');
+  console.log('✅ Data parsing complete!');
 }
 
 function processEntry(entry, id) {
@@ -312,7 +311,7 @@ function createSlug(text) {
     .replace(/^-+|-+$/g, '');
 }
 
-async function generateEmbeddings(words, sentences) {
+async function generateSearchableText(words, sentences) {
   // For now, create a simple text representation for each entry
   // In production, you would generate actual embeddings here
   // but that's expensive at build time, so we'll do it on-demand in the browser
@@ -335,9 +334,10 @@ async function generateEmbeddings(words, sentences) {
   });
 
   const searchableSentences = sentences.map(sent => {
-    const searchText = Object.values(sent)
-      .filter(v => typeof v === 'string')
-      .join(' ');
+    // Extract text from forms and translations
+    const formTexts = sent.forms ? Object.values(sent.forms) : [];
+    const translationTexts = sent.translations ? Object.values(sent.translations) : [];
+    const searchText = [...formTexts, ...translationTexts].filter(Boolean).join(' ');
 
     return {
       id: sent.id,

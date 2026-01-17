@@ -32,13 +32,38 @@
         <main class="main-content">
           <div class="search-section">
             <div class="search-box">
-              <input 
-                type="search" 
+              <input
+                type="search"
                 v-model="searchQuery"
                 @input="handleSearch"
                 placeholder="Search for words or meanings..."
                 class="search-input"
               />
+              <div class="search-options">
+                <label class="semantic-toggle" :class="{ disabled: semanticStatus.status !== 'ready' }">
+                  <input
+                    type="checkbox"
+                    v-model="useSemanticSearch"
+                    :disabled="semanticStatus.status !== 'ready'"
+                    @change="handleSearch"
+                  />
+                  <span class="toggle-label">
+                    Semantic search
+                    <span v-if="semanticStatus.status === 'downloading'" class="status-badge loading">
+                      {{ semanticStatus.message }}
+                    </span>
+                    <span v-else-if="semanticStatus.status === 'loading'" class="status-badge loading">
+                      Loading...
+                    </span>
+                    <span v-else-if="semanticStatus.status === 'ready'" class="status-badge ready">
+                      Ready
+                    </span>
+                    <span v-else class="status-badge idle">
+                      Loading...
+                    </span>
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -116,9 +141,10 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
-import { loadData, getWords, getIndex, getWordOfTheDay, getWordUrl } from '../services/data'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { loadData, getWords, getIndex, getWordOfTheDay, getWordUrl, isSemanticReady, onSemanticProgress } from '../services/data'
 import { smartSearch } from '../services/smart-search'
+import { hybridSearch, isSemanticSearchReady } from '../services/semantic-search'
 
 export default {
   name: 'Home',
@@ -128,20 +154,43 @@ export default {
     const results = ref([])
     const loading = ref(false)
     const index = ref(null)
+    const semanticStatus = ref({ status: 'idle', message: '' })
+    const useSemanticSearch = ref(true) // Enable by default
     let searchTimeout = null
+    let semanticCheckInterval = null
 
     onMounted(async () => {
       loading.value = true
       console.log('📖 Loading dictionary data...')
+
+      // Listen for semantic search progress
+      onSemanticProgress((progress) => {
+        semanticStatus.value = progress
+      })
+
       try {
         await loadData()
         index.value = getIndex()
         wordOfDay.value = getWordOfTheDay()
         console.log(`✅ Loaded ${index.value.totalWords} words and ${index.value.totalSentences} sentences`)
+
+        // Check semantic search status periodically
+        semanticCheckInterval = setInterval(() => {
+          if (isSemanticReady()) {
+            semanticStatus.value = { status: 'ready', message: 'Semantic search ready' }
+            clearInterval(semanticCheckInterval)
+          }
+        }, 500)
       } catch (error) {
         console.error('❌ Error loading data:', error)
       } finally {
         loading.value = false
+      }
+    })
+
+    onUnmounted(() => {
+      if (semanticCheckInterval) {
+        clearInterval(semanticCheckInterval)
       }
     })
 
@@ -157,18 +206,30 @@ export default {
         }
 
         loading.value = true
-        console.log(`🔍 Searching for "${searchQuery.value}"...`)
-        
+        const query = searchQuery.value
+
         try {
-          const searchResults = smartSearch(searchQuery.value, 20)
-          
+          // Always get TF-IDF results first (fast)
+          const tfidfResults = smartSearch(query, 40)
+
+          let searchResults
+          if (useSemanticSearch.value && isSemanticSearchReady()) {
+            // Use hybrid search when semantic is ready
+            console.log(`🔍 Hybrid search for "${query}"...`)
+            searchResults = await hybridSearch(query, tfidfResults, { limit: 20 })
+          } else {
+            // Fall back to TF-IDF only
+            console.log(`🔍 TF-IDF search for "${query}"...`)
+            searchResults = tfidfResults.slice(0, 20)
+          }
+
           // Map to full word objects
           const words = getWords()
           results.value = searchResults
             .filter(r => r.type === 'word')
             .map(r => words.find(w => w.id === r.id))
             .filter(Boolean)
-          
+
           console.log(`Found ${results.value.length} results`)
         } catch (error) {
           console.error('❌ Search error:', error)
@@ -184,7 +245,7 @@ export default {
 
     const getFirstDefinition = (word) => {
       if (!word.senses || word.senses.length === 0) return ''
-      
+
       const sense = word.senses[0]
       if (sense.definitions && Object.keys(sense.definitions).length > 0) {
         return Object.values(sense.definitions)[0]
@@ -195,13 +256,24 @@ export default {
       return ''
     }
 
+    const toggleSemanticSearch = () => {
+      useSemanticSearch.value = !useSemanticSearch.value
+      // Re-run search if there's a query
+      if (searchQuery.value.trim()) {
+        handleSearch()
+      }
+    }
+
     return {
       searchQuery,
       results,
       loading,
       index,
       wordOfDay,
+      semanticStatus,
+      useSemanticSearch,
       handleSearch,
+      toggleSemanticSearch,
       getWordUrl,
       getPrimaryForm,
       getFirstDefinition
@@ -268,6 +340,64 @@ export default {
 .search-input {
   font-size: 1.1rem;
   padding: 1rem;
+}
+
+.search-options {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.semantic-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.semantic-toggle.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.semantic-toggle input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.semantic-toggle.disabled input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status-badge.ready {
+  background: var(--bg-tertiary);
+  color: var(--accent-primary);
+}
+
+.status-badge.loading {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.status-badge.idle {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
 }
 
 .results {
