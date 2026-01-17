@@ -7,24 +7,36 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
-      // Inject build timestamp to invalidate caches on new deploys
-      injectManifest: {
-        injectionPoint: undefined
-      },
+      includeAssets: ['favicon.svg', 'favicon.ico'],
       manifest: {
         name: 'Kubishi Dictionary - Owens Valley Paiute',
-        short_name: 'Kubishi Dictionary',
+        short_name: 'Kubishi',
         description: 'A comprehensive digital dictionary of the Owens Valley Paiute language',
         theme_color: '#3b82f6',
         background_color: '#fdfdf8',
         display: 'standalone',
+        start_url: '/',
+        scope: '/',
+        orientation: 'portrait-primary',
+        categories: ['education', 'books'],
         icons: [
           {
-            src: '/favicon.svg',
+            src: '/pwa-icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-icon-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
