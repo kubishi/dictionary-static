@@ -5,11 +5,14 @@
   "description": "Static dictionary website with semantic search",
   "scripts": {
     "dev": "vite",
+    "dev:api": "wrangler pages dev dist --port 8788",
     "build": "npm run build:data && vite build",
     "build:data": "node build-scripts/parse-lift.js && node build-scripts/generate-embeddings.js",
     "build:embeddings": "node build-scripts/generate-embeddings.js",
     "test:embeddings": "node build-scripts/test-embeddings.js",
-    "preview": "vite preview"
+    "test:api": "node scripts/test-api.js",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=dictionary-static"
   },
   "dependencies": {
     "@xenova/transformers": "^2.17.2",
