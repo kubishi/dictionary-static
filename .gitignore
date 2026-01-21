@@ -1,8 +1,11 @@
 node_modules
 dist
 data/
-!public/data/
 .DS_Store
 *.log
 .env
 .cache
+
+# Language data (not open source)
+*.lift
+public/data/
