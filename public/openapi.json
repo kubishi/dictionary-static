@@ -1,0 +1,434 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Kubishi Dictionary API",
+    "version": "2.0.0",
+    "description": "API for searching the Owens Valley Paiute dictionary. This static API is backwards-compatible with the original MongoDB-backed API.",
+    "contact": {
+      "name": "Kubishi Research Group",
+      "url": "https://research.kubishi.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://dictionary.kubishi.com/api",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/search": {
+      "get": {
+        "summary": "Search dictionary (English)",
+        "description": "Search for Paiute words based on English meaning. Uses text matching on definitions and glosses.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "English search query",
+            "example": "dog"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 10, "maximum": 100 },
+            "description": "Maximum number of results"
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 },
+            "description": "Number of results to skip (pagination)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Word" }
+                    },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing query parameter"
+          }
+        }
+      }
+    },
+    "/search-paiute": {
+      "get": {
+        "summary": "Search by Paiute word",
+        "description": "Exact and fuzzy matching for Paiute words. Supports phonetic normalization (k/g, t/d, etc.)",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Paiute word to search",
+            "example": "tüka"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 10, "maximum": 100 },
+            "description": "Maximum number of results"
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 },
+            "description": "Number of results to skip (pagination)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Word" }
+                    },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing query parameter"
+          }
+        }
+      }
+    },
+    "/search-sentences": {
+      "get": {
+        "summary": "Search example sentences",
+        "description": "Search for example sentences by English translation or Paiute text",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Search query",
+            "example": "I am hungry"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 10, "maximum": 100 },
+            "description": "Maximum number of results"
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 },
+            "description": "Number of results to skip (pagination)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Sentence" }
+                    },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing query parameter"
+          }
+        }
+      }
+    },
+    "/word/{id}": {
+      "get": {
+        "summary": "Get word by ID",
+        "description": "Retrieve a specific word with all details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Word ID",
+            "example": "kwidapugu_ca3e24b8-5442-4a7f-8b33-0a90900797bb"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Word details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "word": { "$ref": "#/components/schemas/Word" },
+                    "audio": { "$ref": "#/components/schemas/Audio" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Word not found"
+          }
+        }
+      }
+    },
+    "/random-word": {
+      "get": {
+        "summary": "Get a random word",
+        "description": "Returns a random word from the dictionary",
+        "responses": {
+          "200": {
+            "description": "Random word",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "word": { "$ref": "#/components/schemas/Word" },
+                    "audio": { "$ref": "#/components/schemas/Audio" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No words found"
+          }
+        }
+      }
+    },
+    "/random-sentence": {
+      "get": {
+        "summary": "Get a random sentence",
+        "description": "Returns a random example sentence from the dictionary",
+        "responses": {
+          "200": {
+            "description": "Random sentence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sentence": { "$ref": "#/components/schemas/Sentence" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sentences found"
+          }
+        }
+      }
+    },
+    "/word-of-the-day": {
+      "get": {
+        "summary": "Get word of the day",
+        "description": "Returns the word of the day. A new word is selected deterministically each day. Words with examples are preferred.",
+        "responses": {
+          "200": {
+            "description": "Word of the day",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "word": { "$ref": "#/components/schemas/Word" },
+                    "audio": { "$ref": "#/components/schemas/Audio" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No word of the day found"
+          }
+        }
+      }
+    },
+    "/browse": {
+      "get": {
+        "summary": "Browse dictionary",
+        "description": "Browse words alphabetically with optional letter filtering",
+        "parameters": [
+          {
+            "name": "letter",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Filter by first letter (e.g., 'A')"
+          },
+          {
+            "name": "counts",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["true"] },
+            "description": "If 'true', returns letter counts instead of words"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50, "maximum": 200 },
+            "description": "Maximum number of results"
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 },
+            "description": "Number of results to skip (pagination)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Browse results or letter counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "results": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Word" }
+                        },
+                        "pagination": { "$ref": "#/components/schemas/BrowsePagination" }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "letterCounts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "letter": { "type": "string" },
+                              "count": { "type": "integer" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Word": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "lexical_unit": { "type": "string", "description": "Paiute word" },
+          "word": { "type": "string" },
+          "dateCreated": { "type": "string", "format": "date-time", "nullable": true },
+          "dateModified": { "type": "string", "format": "date-time", "nullable": true },
+          "traits": {
+            "type": "object",
+            "properties": {
+              "morph-type": { "type": "string" }
+            }
+          },
+          "senses": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Sense" }
+          }
+        }
+      },
+      "Sense": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "nullable": true },
+          "grammatical_info": { "type": "string", "nullable": true, "example": "Noun" },
+          "gloss": { "type": "string", "nullable": true, "example": "dog" },
+          "definition": { "type": "string", "nullable": true, "example": "Dog (domestic)" },
+          "examples": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Example" }
+          }
+        }
+      },
+      "Example": {
+        "type": "object",
+        "properties": {
+          "form": { "type": "string", "description": "Paiute sentence" },
+          "translation": { "type": "string", "description": "English translation" },
+          "source": { "type": "string", "nullable": true, "description": "Source/speaker" },
+          "note": { "type": "string", "nullable": true }
+        }
+      },
+      "Sentence": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string", "description": "Paiute sentence" },
+          "translation": { "type": "string", "description": "English translation" },
+          "word_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "IDs of related words"
+          },
+          "source": { "type": "string", "nullable": true }
+        }
+      },
+      "Audio": {
+        "type": "object",
+        "nullable": true,
+        "description": "Audio is not available in the static API",
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "word_ids": { "type": "array", "items": { "type": "string" } },
+          "transcript": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "integer" },
+          "skip": { "type": "integer" }
+        }
+      },
+      "BrowsePagination": {
+        "type": "object",
+        "properties": {
+          "letter": { "type": "string", "nullable": true },
+          "limit": { "type": "integer" },
+          "skip": { "type": "integer" }
+        }
+      }
+    }
+  }
+}
